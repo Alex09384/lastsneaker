@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/measure.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <h1>Измерение стопы</h1>
+
+        <!-- Инструкция с фото -->
+        <div class="instruction-section" style="margin-bottom: 30px; padding: 20px; background: var(--card-bg); border-radius: 10px;">
+            <h2 style="margin-bottom: 15px; color: var(--primary-color);">Инструкция по измерению</h2>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                <div style="flex: 1; min-width: 250px; text-align: center;">
+                    <img src="{{ url_for('static', filename='images/measurement-guide-1.jpg') }}"
+                         alt="Схема измерения стопы 1"
+                         style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.jpg') }}'; this.alt='Изображение не найдено';">
+
+                </div>
+                <div style="flex: 1; min-width: 250px; text-align: center;">
+                    <img src="{{ url_for('static', filename='images/measurement-guide-2.jpg') }}"
+                         alt="Схема измерения стопы 2"
+                         style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.jpg') }}'; this.alt='Изображение не найдено';">
+
+                </div>
+            </div>
+        </div>
+
+        {% if user_measurements %}
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <h3>Текущие измерения:</h3>
+            <p>Длина: {{ user_measurements.foot_length }} см</p>
+            <p>Ширина: {{ user_measurements.foot_width }} см</p>
+            <p>Косой обхват: {{ user_measurements.oblique_circumference }} см</p>
+            <p>Обхват у пальцев: {{ user_measurements.toe_circumference if user_measurements.toe_circumference else 'Не указан' }} см</p>
+            <p>Подъём: {{ user_measurements.instep_circumference if user_measurements.instep_circumference else 'Не указан' }} см</p>
+            <p>Тип стопы: {{ user_measurements.foot_type }}</p>
+            <button onclick="clearMeasurements()" class="btn btn-secondary" style="margin-top: 10px;">Очистить данные</button>
+        </div>
+        {% endif %}
+
+        {% if errors %}
+        <div style="color: #d32f2f; margin-bottom: 20px;">
+            {% for error in errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form id="measureForm" method="POST" action="/measure" onsubmit="setTimeout(() => window.location.href='/fit', 500)">
+            <div class="form-group">
+                <label for="length">Длина стопы (см):</label>
+                <input type="number" id="length" name="length" step="0.1" min="15" max="40" value="{{ user_measurements.foot_length if user_measurements else '' }}" required>
+                <div class="error-message" id="lengthError">Длина должна быть от 15 до 40 см</div>
+            </div>
+
+            <div class="form-group">
+                <label for="width">Ширина стопы (см):</label>
+                <input type="number" id="width" name="width" step="0.1" min="5" max="15" value="{{ user_measurements.foot_width if user_measurements else '' }}" required>
+                <div class="error-message" id="widthError">Ширина должна быть от 5 до 15 см</div>
+            </div>
+
+            <div class="form-group">
+                <label for="oblique_circumference">Косой обхват (см):</label>
+                <input type="number" id="oblique_circumference" name="oblique_circumference" step="0.1" min="20" max="50" value="{{ user_measurements.oblique_circumference if user_measurements else '' }}" required>
+                <div class="error-message" id="obliqueError">Косой обхват должен быть от 20 до 50 см</div>
+            </div>
+
+            <!-- Новое поле: Обхват у пальцев (без ограничений) -->
+            <div class="form-group">
+                <label for="toe_circumference">Обхват у пальцев (см):</label>
+                <input type="number" id="toe_circumference" name="toe_circumference" step="0.1" value="{{ user_measurements.toe_circumference if user_measurements and user_measurements.toe_circumference else '' }}" required>
+                <div class="error-message" id="toeError">Введите корректное значение</div>
+            </div>
+
+            <!-- Новое поле: Подъём (без ограничений) -->
+            <div class="form-group">
+                <label for="instep_circumference">Подъём (см):</label>
+                <input type="number" id="instep_circumference" name="instep_circumference" step="0.1" value="{{ user_measurements.instep_circumference if user_measurements and user_measurements.instep_circumference else '' }}" required>
+                <div class="error-message" id="instepError">Введите корректное значение</div>
+            </div>
+
+            <div class="form-group">
+                <label for="foot_type">Тип стопы:</label>
+                <select id="foot_type" name="foot_type" required>
+                    <option value="">Выберите тип</option>
+                    <option value="Нейтральная" {% if user_measurements and user_measurements.foot_type == 'Нейтральная' %}selected{% endif %}>Нейтральная</option>
+                    <option value="Плоскостопие" {% if user_measurements and user_measurements.foot_type == 'Плоскостопие' %}selected{% endif %}>Плоскостопие</option>
+                    <option value="Супинация" {% if user_measurements and user_measurements.foot_type == 'Супинация' %}selected{% endif %}>Супинация</option>
+                </select>
+                <div class="error-message" id="footTypeError">Выберите тип стопы</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Сохранить измерения</button>
+        </form>
+    </div>
+</div>
+
+<script>
+async function clearMeasurements() {
+    if (confirm('Очистить все данные измерений?')) {
+        try {
+            const response = await fetch('/clear_measurements', {
+                method: 'POST'
+            });
+            if (response.ok) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error clearing measurements:', error);
+        }
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('measureForm').addEventListener('submit', function() {
+    sessionStorage.setItem('measurementsUpdated', 'true');
+});
+
+// Упрощенная валидация для новых полей (только проверка на число)
+document.getElementById('toe_circumference').addEventListener('input', function() {
+    const value = parseFloat(this.value);
+    const errorElement = document.getElementById('toeError');
+    if (isNaN(value)) {
+        errorElement.style.display = 'block';
+        this.setCustomValidity('Введите число');
+    } else {
+        errorElement.style.display = 'none';
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('instep_circumference').addEventListener('input', function() {
+    const value = parseFloat(this.value);
+    const errorElement = document.getElementById('instepError');
+    if (isNaN(value)) {
+        errorElement.style.display = 'block';
+        this.setCustomValidity('Введите число');
+    } else {
+        errorElement.style.display = 'none';
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}
